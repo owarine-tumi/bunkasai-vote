@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { db } from "../firebase";
+import { db } from "../lib/firebase";
 import {
   collection,
   addDoc,
@@ -81,14 +81,12 @@ export default function Home() {
         return;
       }
 
-      // 投票データ保存
       await addDoc(collection(db, "votes"), {
         studentId,
         points,
         createdAt: new Date(),
       });
 
-      // 投票済みにする
       await updateDoc(studentRef, {
         voted: true,
       });
