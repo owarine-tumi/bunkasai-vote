@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { db } from "../lib/firebase";
 import {
   collection,
@@ -17,6 +18,8 @@ const allClasses = [
 ];
 
 export default function Home() {
+  const router = useRouter();
+
   const [studentId, setStudentId] = useState("");
 
   const grade = studentId[0];
@@ -55,6 +58,12 @@ export default function Home() {
   };
 
   const handleVote = async () => {
+    // 🔥 管理者なら管理画面へ
+    if (studentId.trim() === "T1125") {
+      router.push("/admin");
+      return;
+    }
+
     if (!studentId) {
       alert("学籍番号を入力してください！");
       return;

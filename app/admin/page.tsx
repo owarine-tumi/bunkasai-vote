@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { db } from "../../lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 export default function AdminPage() {
   const [input, setInput] = useState("");
