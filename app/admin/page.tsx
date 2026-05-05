@@ -7,6 +7,7 @@ import {
   setDoc,
   collection,
   getDocs,
+  deleteDoc,
 } from "firebase/firestore";
 
 const allClasses = [
@@ -26,8 +27,6 @@ export default function AdminPage() {
     const snapshot = await getDocs(collection(db, "votes"));
 
     const totals: any = {};
-
-    // 初期化
     allClasses.forEach((c) => {
       totals[c] = 0;
     });
@@ -41,7 +40,6 @@ export default function AdminPage() {
       }
     });
 
-    // 配列にしてソート
     const sorted = Object.entries(totals)
       .map(([name, point]) => ({ name, point }))
       .sort((a: any, b: any) => b.point - a.point);
@@ -80,6 +78,32 @@ export default function AdminPage() {
     setLoading(false);
   };
 
+  // 🔥 全投票リセット
+  const resetVotes = async () => {
+    const ok = confirm("本当に全投票をリセットしますか？");
+    if (!ok) return;
+
+    try {
+      // votes削除
+      const voteSnapshot = await getDocs(collection(db, "votes"));
+      for (const v of voteSnapshot.docs) {
+        await deleteDoc(v.ref);
+      }
+
+      // studentsを未投票に戻す
+      const studentSnapshot = await getDocs(collection(db, "students"));
+      for (const s of studentSnapshot.docs) {
+        await setDoc(s.ref, { voted: false }, { merge: true });
+      }
+
+      alert("リセット完了！");
+      fetchRanking();
+    } catch (error) {
+      console.log(error);
+      alert("リセット失敗");
+    }
+  };
+
   return (
     <div style={{ padding: 20 }}>
       <h1>管理者画面</h1>
@@ -105,12 +129,15 @@ export default function AdminPage() {
 
       <hr style={{ margin: "30px 0" }} />
 
-      {/* 🔥 ランキング表示 */}
+      {/* 🔥 リセットボタン */}
+      <button onClick={resetVotes} style={{ marginBottom: 20 }}>
+        🔥 全投票リセット
+      </button>
+
+      {/* 🔥 ランキング */}
       <h2>投票ランキング</h2>
 
-      <button onClick={fetchRanking}>
-        更新
-      </button>
+      <button onClick={fetchRanking}>更新</button>
 
       <ul>
         {ranking.map((item, index) => (
