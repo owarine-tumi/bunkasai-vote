@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { db } from "../../lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 export default function AdminPage() {
   const [input, setInput] = useState("");
@@ -17,24 +19,17 @@ export default function AdminPage() {
       .filter((id) => id !== "");
 
     try {
-      const res = await fetch("/api/admin/add-users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ studentIds }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setMessage(data.error || "エラーが発生しました");
-      } else {
-        setMessage(`登録完了！ ${data.users.length}人追加`);
-        setInput(""); // 入力リセット（お好み）
+      for (const id of studentIds) {
+        await setDoc(doc(db, "students", id), {
+          voted: false,
+        });
       }
+
+      setMessage(`登録完了！ ${studentIds.length}人追加`);
+      setInput("");
     } catch (error) {
-      setMessage("通信エラー");
+      console.log(error);
+      setMessage("エラーが発生しました");
     }
 
     setLoading(false);
