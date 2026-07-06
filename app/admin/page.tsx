@@ -1,5 +1,6 @@
 "use client";
 
+import { getRanking } from "../../lib/ranking";
 import { useState, useEffect } from "react";
 import { db } from "../../lib/firebase";
 import {
@@ -24,52 +25,62 @@ export default function AdminPage() {
   const [studentRanking, setStudentRanking] = useState<any[]>([]);
   const [teacherRanking, setTeacherRanking] = useState<any[]>([]);
   const [parentRanking, setParentRanking] = useState<any[]>([]);
+  const [student1Ranking, setStudent1Ranking] = useState<any[]>([]);
+  const [student2Ranking, setStudent2Ranking] = useState<any[]>([]);
+  const [student3Ranking, setStudent3Ranking] = useState<any[]>([]);
 
+  const [teacher1Ranking, setTeacher1Ranking] = useState<any[]>([]);
+  const [teacher2Ranking, setTeacher2Ranking] = useState<any[]>([]);
+  const [teacher3Ranking, setTeacher3Ranking] = useState<any[]>([]); 
+
+  const [parent1Ranking, setParent1Ranking] = useState<any[]>([]);
+  const [parent2Ranking, setParent2Ranking] = useState<any[]>([]);
+  const [parent3Ranking, setParent3Ranking] = useState<any[]>([]);
+  
+  const [nsvRanking, setNsvRanking] = useState<any[]>([]);
   // 🔥 ランキング取得
 const fetchRanking = async () => {
   const snapshot = await getDocs(collection(db, "votes"));
+  const votes = snapshot.docs.map((doc) => doc.data() as any);
 
-  const total: Record<string, number> = {};
-  const student: Record<string, number> = {};
-  const teacher: Record<string, number> = {};
-  const parent: Record<string, number> = {};
+  const result = getRanking(votes);
 
-  allClasses.forEach((c) => {
-    total[c] = 0;
-    student[c] = 0;
-    teacher[c] = 0;
-    parent[c] = 0;
-  });
+  setRanking(result.totalRank);
 
-  snapshot.forEach((vote) => {
-    const data = vote.data();
-    const points = data.points || {};
-    const type = data.voterType || data.userType;
+setStudentRanking(result.studentRank);
+setTeacherRanking(result.teacherRank);
+setParentRanking(result.parentRank);
 
-    for (const className in points) {
-      const point = Number(points[className]) || 0;
+setStudent1Ranking(
+  result.studentRank.filter((item) => item.name.startsWith("1年"))
+);
+setStudent2Ranking(
+  result.studentRank.filter((item) => item.name.startsWith("2年"))
+);
+setStudent3Ranking(
+  result.studentRank.filter((item) => item.name.startsWith("3年"))
+);
 
-      total[className] += point;
+setTeacher1Ranking(
+  result.teacherRank.filter((item) => item.name.startsWith("1年"))
+);
+setTeacher2Ranking(
+  result.teacherRank.filter((item) => item.name.startsWith("2年"))
+);
+setTeacher3Ranking(
+  result.teacherRank.filter((item) => item.name.startsWith("3年"))
+);
 
-      if (type === "student") {
-        student[className] += point;
-      } else if (type === "teacher") {
-        teacher[className] += point;
-      } else if (type === "parent") {
-        parent[className] += point;
-      }
-    }
-  });
-
-  const sortRanking = (obj: Record<string, number>) =>
-    Object.entries(obj)
-      .map(([name, point]) => ({ name, point }))
-      .sort((a, b) => b.point - a.point);
-
-  setRanking(sortRanking(total));
-  setStudentRanking(sortRanking(student));
-  setTeacherRanking(sortRanking(teacher));
-  setParentRanking(sortRanking(parent));
+setParent1Ranking(
+  result.parentRank.filter((item) => item.name.startsWith("1年"))
+);
+setParent2Ranking(
+  result.parentRank.filter((item) => item.name.startsWith("2年"))
+);
+setParent3Ranking(
+  result.parentRank.filter((item) => item.name.startsWith("3年"))
+);
+setNsvRanking(result.nsvRank);
 };
 
 
@@ -187,8 +198,27 @@ const fetchRanking = async () => {
 
 <h2>👨‍🎓 生徒順位</h2>
 
+<h3>1年</h3>
 <ul>
-  {studentRanking.map((item, index) => (
+  {student1Ranking.map((item, index) => (
+    <li key={item.name}>
+      {index + 1}位：{item.name}（{item.point}ポイント）
+    </li>
+  ))}
+</ul>
+
+<h3>2年</h3>
+<ul>
+  {student2Ranking.map((item, index) => (
+    <li key={item.name}>
+      {index + 1}位：{item.name}（{item.point}ポイント）
+    </li>
+  ))}
+</ul>
+
+<h3>3年</h3>
+<ul>
+  {student3Ranking.map((item, index) => (
     <li key={item.name}>
       {index + 1}位：{item.name}（{item.point}ポイント）
     </li>
@@ -199,8 +229,27 @@ const fetchRanking = async () => {
 
 <h2>👨‍🏫 先生順位</h2>
 
+<h3>1年</h3>
 <ul>
-  {teacherRanking.map((item, index) => (
+  {teacher1Ranking.map((item, index) => (
+    <li key={item.name}>
+      {index + 1}位：{item.name}（{item.point}ポイント）
+    </li>
+  ))}
+</ul>
+
+<h3>2年</h3>
+<ul>
+  {teacher2Ranking.map((item, index) => (
+    <li key={item.name}>
+      {index + 1}位：{item.name}（{item.point}ポイント）
+    </li>
+  ))}
+</ul>
+
+<h3>3年</h3>
+<ul>
+  {teacher3Ranking.map((item, index) => (
     <li key={item.name}>
       {index + 1}位：{item.name}（{item.point}ポイント）
     </li>
@@ -211,10 +260,40 @@ const fetchRanking = async () => {
 
 <h2>👨‍👩‍👧 保護者順位</h2>
 
+<h3>1年</h3>
 <ul>
-  {parentRanking.map((item, index) => (
+  {parent1Ranking.map((item, index) => (
     <li key={item.name}>
       {index + 1}位：{item.name}（{item.point}ポイント）
+    </li>
+  ))}
+</ul>
+
+<h3>2年</h3>
+<ul>
+  {parent2Ranking.map((item, index) => (
+    <li key={item.name}>
+      {index + 1}位：{item.name}（{item.point}ポイント）
+    </li>
+  ))}
+</ul>
+
+<h3>3年</h3>
+<ul>
+  {parent3Ranking.map((item, index) => (
+    <li key={item.name}>
+      {index + 1}位：{item.name}（{item.point}ポイント）
+    </li>
+  ))}
+</ul>
+<hr />
+
+<h2>⭐ NSV総合順位</h2>
+
+<ul>
+  {nsvRanking.map((item, index) => (
+    <li key={item.name}>
+      {index + 1}位：{item.name}（{item.point}NSV）
     </li>
   ))}
 </ul>
