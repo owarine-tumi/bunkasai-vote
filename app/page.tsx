@@ -32,8 +32,8 @@ const maxPoints = getMaxPoints(userType);
 
 const grade =
   userType === "student"
-    ? studentId[0]
-    : "";
+    ? Number(studentId[0])
+    : 0;
 
   const classes = allClasses.filter(
     (className) => !className.startsWith(`${grade}年`)
@@ -117,8 +117,10 @@ const studentRef = doc(db, collectionName, studentId);
       }
 
       await addDoc(collection(db, "votes"), {
-        studentId,
-        userType,
+        voterId: studentId,
+        voterType: userType,
+        voterGrade: grade,
+        totalPoints: maxPoints,
         points,
         createdAt: new Date(),
       });
