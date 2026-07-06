@@ -8,8 +8,8 @@ import {
   collection,
   getDocs,
   deleteDoc,
+  onSnapshot,
 } from "firebase/firestore";
-
 const allClasses = [
   "1年1組","1年2組","1年3組","1年4組","1年5組","1年6組",
   "2年1組","2年2組","2年3組","2年4組","2年5組","2年6組",
@@ -21,35 +21,69 @@ export default function AdminPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [ranking, setRanking] = useState<any[]>([]);
+  const [studentRanking, setStudentRanking] = useState<any[]>([]);
+  const [teacherRanking, setTeacherRanking] = useState<any[]>([]);
+  const [parentRanking, setParentRanking] = useState<any[]>([]);
 
   // 🔥 ランキング取得
-  const fetchRanking = async () => {
-    const snapshot = await getDocs(collection(db, "votes"));
+const fetchRanking = async () => {
+  const snapshot = await getDocs(collection(db, "votes"));
 
-    const totals: any = {};
-    allClasses.forEach((c) => {
-      totals[c] = 0;
-    });
+  const total: Record<string, number> = {};
+  const student: Record<string, number> = {};
+  const teacher: Record<string, number> = {};
+  const parent: Record<string, number> = {};
 
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      const points = data.points;
+  allClasses.forEach((c) => {
+    total[c] = 0;
+    student[c] = 0;
+    teacher[c] = 0;
+    parent[c] = 0;
+  });
 
-      for (const className in points) {
-        totals[className] += points[className];
+  snapshot.forEach((vote) => {
+    const data = vote.data();
+    const points = data.points || {};
+    const type = data.voterType || data.userType;
+
+    for (const className in points) {
+      const point = Number(points[className]) || 0;
+
+      total[className] += point;
+
+      if (type === "student") {
+        student[className] += point;
+      } else if (type === "teacher") {
+        teacher[className] += point;
+      } else if (type === "parent") {
+        parent[className] += point;
       }
-    });
+    }
+  });
 
-    const sorted = Object.entries(totals)
+  const sortRanking = (obj: Record<string, number>) =>
+    Object.entries(obj)
       .map(([name, point]) => ({ name, point }))
-      .sort((a: any, b: any) => b.point - a.point);
+      .sort((a, b) => b.point - a.point);
 
-    setRanking(sorted);
-  };
+  setRanking(sortRanking(total));
+  setStudentRanking(sortRanking(student));
+  setTeacherRanking(sortRanking(teacher));
+  setParentRanking(sortRanking(parent));
+};
+
+
 
   useEffect(() => {
-    fetchRanking();
-  }, []);
+  const unsubscribe = onSnapshot(
+    collection(db, "votes"),
+    () => {
+      fetchRanking();
+    }
+  );
+
+  return () => unsubscribe();
+}, []);
 
   // 🔥 学籍番号登録
   const handleSubmit = async () => {
@@ -137,15 +171,53 @@ export default function AdminPage() {
       {/* 🔥 ランキング */}
       <h2>投票ランキング</h2>
 
-      <button onClick={fetchRanking}>更新</button>
+      <h2>🏆 総合順位</h2>
 
-      <ul>
-        {ranking.map((item, index) => (
-          <li key={item.name}>
-            {index + 1}位：{item.name}（{item.point}ポイント）
-          </li>
-        ))}
-      </ul>
+<button onClick={fetchRanking}>更新</button>
+
+<ul>
+  {ranking.map((item, index) => (
+    <li key={item.name}>
+      {index + 1}位：{item.name}（{item.point}ポイント）
+    </li>
+  ))}
+</ul>
+
+<hr />
+
+<h2>👨‍🎓 生徒順位</h2>
+
+<ul>
+  {studentRanking.map((item, index) => (
+    <li key={item.name}>
+      {index + 1}位：{item.name}（{item.point}ポイント）
+    </li>
+  ))}
+</ul>
+
+<hr />
+
+<h2>👨‍🏫 先生順位</h2>
+
+<ul>
+  {teacherRanking.map((item, index) => (
+    <li key={item.name}>
+      {index + 1}位：{item.name}（{item.point}ポイント）
+    </li>
+  ))}
+</ul>
+
+<hr />
+
+<h2>👨‍👩‍👧 保護者順位</h2>
+
+<ul>
+  {parentRanking.map((item, index) => (
+    <li key={item.name}>
+      {index + 1}位：{item.name}（{item.point}ポイント）
+    </li>
+  ))}
+</ul>
     </div>
   );
 }
