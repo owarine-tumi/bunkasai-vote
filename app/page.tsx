@@ -10,6 +10,10 @@ import {
   getDoc,
   updateDoc,
 } from "firebase/firestore";
+import {
+  getUserType,
+  getMaxPoints,
+} from "../lib/validator";
 
 const allClasses = [
   "1年1組","1年2組","1年3組","1年4組","1年5組","1年6組",
@@ -22,7 +26,14 @@ export default function Home() {
 
   const [studentId, setStudentId] = useState("");
 
-  const grade = studentId[0];
+  const userType = getUserType(studentId);
+
+const maxPoints = getMaxPoints(userType);
+
+const grade =
+  userType === "student"
+    ? studentId[0]
+    : "";
 
   const classes = allClasses.filter(
     (className) => !className.startsWith(`${grade}年`)
@@ -33,11 +44,14 @@ export default function Home() {
   );
 
   const totalUsed = Object.values(points).reduce(
-    (sum, value) => sum + value,
-    0
-  );
+  (sum, value) => sum + value,
+  0
+);
 
-  const remaining = 5 - totalUsed;
+const remaining = maxPoints - totalUsed;
+const selectedCount = Object.values(points).filter(
+  (point) => point > 0
+).length;
 
   const increasePoint = (className: string) => {
     if (remaining <= 0) return;
@@ -73,9 +87,21 @@ export default function Home() {
       alert("ポイントをすべて使ってください！");
       return;
     }
+    if (selectedCount < 3) {
+      alert("3クラス以上に投票してください！");
+      return;
+    }
 
     try {
-      const studentRef = doc(db, "students", studentId);
+      let collectionName = "students";
+
+if (userType === "teacher") {
+  collectionName = "teachers";
+} else if (userType === "parent") {
+  collectionName = "parents";
+}
+
+const studentRef = doc(db, collectionName, studentId);
       const studentSnap = await getDoc(studentRef);
 
       if (!studentSnap.exists()) {
@@ -92,6 +118,7 @@ export default function Home() {
 
       await addDoc(collection(db, "votes"), {
         studentId,
+        userType,
         points,
         createdAt: new Date(),
       });
@@ -123,9 +150,18 @@ export default function Home() {
         className="border p-3 rounded w-full mb-6"
       />
 
-      <p className="mb-6 text-lg">
-        残りポイント：{remaining}
-      </p>
+      <p className="mb-2 text-lg">
+  区分：
+  {userType === "student"
+    ? "生徒"
+    : userType === "teacher"
+    ? "先生"
+    : "保護者"}
+</p>
+
+<p className="mb-6 text-lg">
+  残りポイント：{remaining} / {maxPoints}
+</p>
 
       <div className="space-y-4">
         {classes.map((className) => (
