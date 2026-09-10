@@ -115,22 +115,37 @@ const handleSubmit = async () => {
       .toUpperCase();
 
   const studentIds = input
-    .split(/\r?\n/)
-    .map(normalizeStudentId)
-    .filter((id) => id !== "");
+  .split(/\r?\n/)
+  .map(normalizeStudentId)
+  .filter((id) => id !== "");
 
-  if (studentIds.length === 0) {
-    setMessage("学籍番号を入力してください");
-    setLoading(false);
-    return;
+if (studentIds.length === 0) {
+  setMessage("学籍番号を入力してください");
+  setLoading(false);
+  return;
+}
+
+try {
+  for (const id of studentIds) {
+    let collectionName = "students";
+
+    // Kから始まる → 先生
+    if (id.startsWith("K")) {
+      collectionName = "teachers";
+    }
+
+    // Pから始まる → 保護者
+    else if (id.startsWith("P")) {
+      collectionName = "parents";
+    }
+
+    await setDoc(doc(db, collectionName, id), {
+      voted: false,
+    });
   }
 
-  try {
-    for (const id of studentIds) {
-      await setDoc(doc(db, "students", id), {
-        voted: false,
-      });
-    }
+  setMessage(`登録完了！ ${studentIds.length}人追加`);
+  setInput("");
 
     setMessage(`登録完了！ ${studentIds.length}人追加`);
     setInput("");
