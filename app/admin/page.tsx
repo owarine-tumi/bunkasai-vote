@@ -97,31 +97,55 @@ setNsvRanking(result.nsvRank);
 }, []);
 
   // 🔥 学籍番号登録
-  const handleSubmit = async () => {
-    setLoading(true);
-    setMessage("");
+  // 🔥 学籍番号登録
+const handleSubmit = async () => {
+  setLoading(true);
+  setMessage("");
 
-    const studentIds = input
-      .split("\n")
-      .map((id) => id.trim())
-      .filter((id) => id !== "");
+  // 学籍番号を整える
+  // ・前後の空白を削除
+  // ・全角英数字を半角に変換
+  // ・小文字のp/tなどを大文字に統一
+  // ・途中の空白も削除
+  const normalizeStudentId = (value: string) =>
+    value
+      .trim()
+      .normalize("NFKC")
+      .replace(/\s+/g, "")
+      .toUpperCase();
 
-    try {
-      for (const id of studentIds) {
-        await setDoc(doc(db, "students", id), {
-          voted: false,
-        });
-      }
+  const studentIds = input
+    .split(/\r?\n/)
+    .map(normalizeStudentId)
+    .filter((id) => id !== "");
 
-      setMessage(`登録完了！ ${studentIds.length}人追加`);
-      setInput("");
-    } catch (error) {
-      console.log(error);
-      setMessage("エラーが発生しました");
+  if (studentIds.length === 0) {
+    setMessage("学籍番号を入力してください");
+    setLoading(false);
+    return;
+  }
+
+  try {
+    for (const id of studentIds) {
+      await setDoc(doc(db, "students", id), {
+        voted: false,
+      });
     }
 
-    setLoading(false);
-  };
+    setMessage(`登録完了！ ${studentIds.length}人追加`);
+    setInput("");
+  } catch (error) {
+    console.error("学籍番号登録エラー:", error);
+
+    if (error instanceof Error) {
+      setMessage(`登録エラー：${error.message}`);
+    } else {
+      setMessage("登録エラーが発生しました");
+    }
+  }
+
+  setLoading(false);
+};
 
   // 🔥 全投票リセット
   const resetVotes = async () => {
