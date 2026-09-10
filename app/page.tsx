@@ -71,35 +71,83 @@ const selectedCount = Object.values(points).filter(
     });
   };
 
-  const handleVote = async () => {
-    // 🔥 管理者なら管理画面へ
-    if (studentId.trim() === "T1125") {
-      router.push("/admin");
+const handleVote = async () => {
+  // 学籍番号を整える
+  // ・前後の空白を削除
+  // ・全角英数字を半角に変換
+  // ・小文字を大文字に統一
+  // ・途中の空白を削除
+  const normalizedId = studentId
+    .trim()
+    .normalize("NFKC")
+    .replace(/\s+/g, "")
+    .toUpperCase();
+
+  // 🔥 管理者なら管理画面へ
+  if (normalizedId === "T1125") {
+    router.push("/admin");
+    return;
+  }
+
+  if (!normalizedId) {
+    alert("学籍番号を入力してください！");
+    return;
+  }
+
+  if (remaining !== 0) {
+    alert("ポイントをすべて使ってください！");
+    return;
+  }
+
+  if (selectedCount < 3) {
+    alert("3クラス以上に投票してください！");
+    return;
+  }
+
+  try {
+    let collectionName = "students";
+
+    if (userType === "teacher") {
+      collectionName = "teachers";
+    } else if (userType === "parent") {
+      collectionName = "parents";
+    }
+
+    // 🔥 正規化した学籍番号で検索
+    const userRef = doc(db, collectionName, normalizedId);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      alert("この学籍番号は登録されていません");
       return;
     }
 
-    if (!studentId) {
-      alert("学籍番号を入力してください！");
+    const userData = userSnap.data();
+
+    if (userData.voted) {
+      alert("すでに投票済みです！");
       return;
     }
 
-    if (remaining !== 0) {
-      alert("ポイントをすべて使ってください！");
-      return;
-    }
-    if (selectedCount < 3) {
-      alert("3クラス以上に投票してください！");
-      return;
-    }
+    await addDoc(collection(db, "votes"), {
+      voterId: normalizedId,
+      voterType: userType,
+      voterGrade: grade,
+      totalPoints: maxPoints,
+      points,
+      createdAt: new Date(),
+    });
 
-    try {
-      let collectionName = "students";
+    await updateDoc(userRef, {
+      voted: true,
+    });
 
-if (userType === "teacher") {
-  collectionName = "teachers";
-} else if (userType === "parent") {
-  collectionName = "parents";
-}
+    alert("投票が完了しました！");
+  } catch (error) {
+    alert("エラーが発生しました");
+    console.log(error);
+  }
+};
 
 const studentRef = doc(db, collectionName, studentId);
       const studentSnap = await getDoc(studentRef);
